@@ -20,9 +20,10 @@ Build a web application that authenticates users by comparing how they type, not
 ## Step-By-Step Build Plan
 
 ### 1. Define the authentication flow
-- Decide the login flow: password only, then typing verification, or password plus typing check.
-- Choose the typing sample size needed to create a profile.
-- Decide the rejection rules and fallback path for failed matches.
+- Use password plus typing check for login so password validation happens first and the typing-pattern score acts as a second factor.
+- Collect 5 enrollment samples per user to create the typing profile baseline.
+- Use the same phrase for every enrollment sample so the baseline stays consistent.
+- Reject logins when the typing confidence falls below the threshold, and require a fresh reenrollment after 3 failed typing checks.
 
 ### 2. Design the data model
 - Create a user table with account details and password hash.
