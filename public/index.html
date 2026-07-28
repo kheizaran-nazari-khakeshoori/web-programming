@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Keystroke Dynamics Authentication</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <script type="module" src="/app.js" defer></script>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <p class="eyebrow">Behavioral Biometrics</p>
+        <h1>Keystroke Dynamics Authentication</h1>
+        <p class="lead">
+          A portfolio-ready web app that learns how a user types, stores a profile securely, and compares future
+          logins against that behavior.
+        </p>
+      </section>
+
+      <section class="grid">
+        <article class="card">
+          <h2>1. Register</h2>
+          <form id="register-form" class="stack">
+            <label>
+              Username
+              <input name="username" type="text" autocomplete="username" required />
+            </label>
+            <label>
+              Password
+              <input name="password" type="password" autocomplete="new-password" minlength="8" required />
+            </label>
+            <button type="submit">Create account</button>
+          </form>
+        </article>
+
+        <article class="card">
+          <h2>2. Enroll typing profile</h2>
+          <form id="enroll-form" class="stack">
+            <label>
+              Username
+              <input name="username" type="text" autocomplete="username" required />
+            </label>
+            <label>
+              Phrase to type
+              <input name="phrase" type="text" value="secure access" required />
+            </label>
+            <label>
+              Typing sample
+              <textarea name="typing" rows="3" placeholder="Type the phrase above exactly as shown" required></textarea>
+            </label>
+            <button type="submit">Save profile</button>
+          </form>
+        </article>
+
+        <article class="card">
+          <h2>3. Login</h2>
+          <form id="login-form" class="stack">
+            <label>
+              Username
+              <input name="username" type="text" autocomplete="username" required />
+            </label>
+            <label>
+              Password
+              <input name="password" type="password" autocomplete="current-password" required />
+            </label>
+            <label>
+              Phrase to type
+              <input name="phrase" type="text" value="secure access" required />
+            </label>
+            <label>
+              Typing sample
+              <textarea name="typing" rows="3" placeholder="Type the phrase above exactly as shown" required></textarea>
+            </label>
+            <button type="submit">Verify login</button>
+          </form>
+        </article>
+      </section>
+
+      <section class="card status-card">
+        <div>
+          <h2>Live status</h2>
+          <p id="status-text">Ready.</p>
+        </div>
+        <pre id="result-output" aria-live="polite"></pre>
+      </section>
+    </main>
+  </body>
+</html>
