@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Keystroke Dynamics Authentication</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="auth-container">
+        <h2>Keystroke Dynamics Auth</h2>
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" required autocomplete="off">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" required autocomplete="off">
+            </div>
+
+            <div class="form-group">
+                <label for="targetPhrase">Type Verification Phrase</label>
+                <p class="phrase-instruction">Type exact phrase: <strong>"security-by-typing"</strong></p>
+                <input 
+                    type="text" 
+                    id="targetPhrase" 
+                    placeholder="security-by-typing" 
+                    required 
+                    autocomplete="off" 
+                    autocorrect="off" 
+                    spellcheck="false"
+                >
+            </div>
+
+            <button type="submit" id="submitBtn">Submit Login</button>
+        </form>
+
+        <div id="statusMessage" class="status-message"></div>
+    </div>
+
+    <script src="js/collector.js"></script>
+</body>
+</html>
