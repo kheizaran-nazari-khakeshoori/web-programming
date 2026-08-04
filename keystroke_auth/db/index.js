@@ -106,4 +106,14 @@ module.exports = {
             [userId]
         );
     }
+
+    
 };
+// Add this helper function to db/index.js
+async function getEnrollmentSamples(userId) {
+    const { rows } = await pool.query(
+        'SELECT hold_times AS "holdTimes", flight_times AS "flightTimes" FROM enrollment_samples WHERE user_id = $1 ORDER BY sample_index ASC',
+        [userId]
+    );
+    return rows;
+}
