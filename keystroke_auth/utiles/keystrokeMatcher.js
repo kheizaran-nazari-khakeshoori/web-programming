@@ -1,36 +1,21 @@
 /**
- * Keystroke Dynamics Matching and Aggregation Utilities
+ * Utility functions for statistical feature extraction and similarity scoring.
  */
 
-/**
- * Calculates the arithmetic mean of an array of numbers.
- * @param {number[]} arr 
- * @returns {number}
- */
 function calculateMean(arr) {
     if (!arr || arr.length === 0) return 0;
-    const sum = arr.reduce((acc, val) => acc + val, 0);
-    return sum / arr.length;
+    return arr.reduce((acc, val) => acc + val, 0) / arr.length;
 }
 
-/**
- * Calculates the sample standard deviation of an array of numbers.
- * @param {number[]} arr 
- * @param {number} mean 
- * @returns {number}
- */
 function calculateStdDev(arr, mean) {
-    if (!arr || arr.length <= 1) return 10; // Default minimum variance in ms
+    if (!arr || arr.length <= 1) return 10;
     const variance = arr.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / (arr.length - 1);
     const std = Math.sqrt(variance);
-    return std < 5 ? 5 : std; // Prevent division-by-zero or overly strict thresholds
+    return std < 5 ? 5 : std; // Prevent division by zero or overly strict limits
 }
 
 /**
- * Aggregates raw typing timing samples collected during enrollment 
- * into a single user baseline profile (means & standard deviations).
- * * @param {Array<{ holdTimes: number[], flightTimes: number[] }>} samples 
- * @returns {{ meanHoldTimes: number[], stdHoldTimes: number[], meanFlightTimes: number[], stdFlightTimes: number[] }}
+ * Builds aggregated mean and standard deviation profiles from enrollment samples.
  */
 function buildProfileFromSamples(samples) {
     if (!samples || samples.length === 0) {
@@ -45,91 +30,77 @@ function buildProfileFromSamples(samples) {
     const meanFlightTimes = [];
     const stdFlightTimes = [];
 
-    // Calculate mean and std deviation for Hold Times (key down -> key up)
     for (let i = 0; i < numHoldKeys; i++) {
         const keyHoldValues = samples.map(s => s.holdTimes[i] || 0);
         const mean = calculateMean(keyHoldValues);
-        const std = calculateStdDev(keyHoldValues, mean);
-
         meanHoldTimes.push(Math.round(mean));
-        stdHoldTimes.push(Math.round(std));
+        stdHoldTimes.push(Math.round(calculateStdDev(keyHoldValues, mean)));
     }
 
-    // Calculate mean and std deviation for Flight Times (key_N up -> key_N+1 down)
     for (let i = 0; i < numFlightPairs; i++) {
         const keyFlightValues = samples.map(s => s.flightTimes[i] || 0);
         const mean = calculateMean(keyFlightValues);
-        const std = calculateStdDev(keyFlightValues, mean);
-
         meanFlightTimes.push(Math.round(mean));
-        stdFlightTimes.push(Math.round(std));
+        stdFlightTimes.push(Math.round(calculateStdDev(keyFlightValues, mean)));
     }
 
-    return {
-        meanHoldTimes,
-        stdHoldTimes,
-        meanFlightTimes,
-        stdFlightTimes
-    };
+    return { meanHoldTimes, stdHoldTimes, meanFlightTimes, stdFlightTimes };
 }
 
 /**
- * Compares an incoming login attempt's timing vector against the stored profile baseline.
- * Uses Z-Score statistical distance to compute a normalized score from 0.0 to 1.0.
- * * @param {{ holdTimes: number[], flightTimes: number[] }} attemptData 
- * @param {object} storedProfile 
- * @returns {number} Normalized similarity score between 0.0 and 1.0
+ * Calculates feature-level Z-Scores: |X - μ| / σ
  */
-function calculateSimilarityScore(attemptData, storedProfile) {
+function computeVectorZScores(attemptArray, meanArray, stdArray) {
+    if (!attemptArray || !meanArray || attemptArray.length === 0) return { totalZ: 0, count: 0 };
+
+    let totalZ = 0;
+    let count = 0;
+
+    attemptArray.forEach((val, idx) => {
+        if (meanArray[idx] !== undefined) {
+            const mean = meanArray[idx];
+            const std = stdArray[idx] || 10;
+            totalZ += Math.abs(val - mean) / std;
+            count++;
+        }
+    });
+
+    return { totalZ, count };
+}
+
+/**
+ * Advanced Comparison Engine: Evaluates attempt against stored baseline.
+ */
+function calculateSimilarityScore(attemptData, storedProfile, weights = { hold: 0.6, flight: 0.4 }) {
     const { holdTimes, flightTimes } = attemptData;
-    
-    // Support database column names (snake_case) or JS property names (camelCase)
-    const meanHoldTimes = storedProfile.mean_hold_times || storedProfile.meanHoldTimes;
-    const stdHoldTimes = storedProfile.std_hold_times || storedProfile.stdHoldTimes;
-    const meanFlightTimes = storedProfile.mean_flight_times || storedProfile.meanFlightTimes;
-    const stdFlightTimes = storedProfile.std_flight_times || storedProfile.stdFlightTimes;
 
-    let totalZScore = 0;
-    let featureCount = 0;
+    const meanHold = storedProfile.mean_hold_times || storedProfile.meanHoldTimes;
+    const stdHold = storedProfile.std_hold_times || storedProfile.stdHoldTimes;
+    const meanFlight = storedProfile.mean_flight_times || storedProfile.meanFlightTimes;
+    const stdFlight = storedProfile.std_flight_times || storedProfile.stdFlightTimes;
 
-    // Evaluate Hold Times Z-Score: |X - μ| / σ
-    if (holdTimes && meanHoldTimes) {
-        holdTimes.forEach((hold, index) => {
-            if (meanHoldTimes[index] !== undefined) {
-                const mean = meanHoldTimes[index];
-                const std = stdHoldTimes[index] || 10;
-                const zScore = Math.abs(hold - mean) / std;
-                totalZScore += zScore;
-                featureCount++;
-            }
-        });
-    }
+    const holdStats = computeVectorZScores(holdTimes, meanHold, stdHold);
+    const flightStats = computeVectorZScores(flightTimes, meanFlight, stdFlight);
 
-    // Evaluate Flight Times Z-Score
-    if (flightTimes && meanFlightTimes) {
-        flightTimes.forEach((flight, index) => {
-            if (meanFlightTimes[index] !== undefined) {
-                const mean = meanFlightTimes[index];
-                const std = stdFlightTimes[index] || 15;
-                const zScore = Math.abs(flight - mean) / std;
-                totalZScore += zScore;
-                featureCount++;
-            }
-        });
-    }
+    const holdZScore = holdStats.count > 0 ? holdStats.totalZ / holdStats.count : 0;
+    const flightZScore = flightStats.count > 0 ? flightStats.totalZ / flightStats.count : 0;
 
-    if (featureCount === 0) return 0;
+    // Weighted combined Z-score
+    const weightedZ = (holdZScore * weights.hold) + (flightZScore * weights.flight);
 
-    // Average Z-Score deviation across all features
-    const averageZScore = totalZScore / featureCount;
+    // Map Z-Score to percentage confidence (0.0 - 1.0 scale)
+    const overallScore = Math.max(0, 1 - (weightedZ / 4.0));
+    const holdScore = Math.max(0, 1 - (holdZScore / 4.0));
+    const flightScore = Math.max(0, 1 - (flightZScore / 4.0));
 
-    // Map the average Z-score to a 0.0 – 1.0 similarity scale:
-    // Average Z-Score of 0.0  => 1.00 (100% match)
-    // Average Z-Score of 1.5  => 0.85 (85% match threshold)
-    // Average Z-Score >= 10.0 => 0.00 (0% match)
-    const similarity = Math.max(0, 1 - (averageZScore / 10.0));
-
-    return parseFloat(similarity.toFixed(2));
+    return {
+        confidenceScore: parseFloat(overallScore.toFixed(2)),
+        breakdown: {
+            holdScore: parseFloat(holdScore.toFixed(2)),
+            flightScore: parseFloat(flightScore.toFixed(2)),
+            weightedZScore: parseFloat(weightedZ.toFixed(2))
+        }
+    };
 }
 
 module.exports = {
